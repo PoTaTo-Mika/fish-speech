@@ -147,4 +147,4 @@ def main(firefly_gan_vq_path, llama_path, export_prefix):
 
 
 if __name__ == "__main__":
-    main("checkpoints/pre/firefly-gan-vq-fsq-8x1024-21hz-generator.pth", None, "test_")
+    main("checkpoints/fish-speech-1.5/firefly-gan-vq-fsq-8x1024-21hz-generator.pth", None, "test_")
