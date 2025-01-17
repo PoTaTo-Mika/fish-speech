@@ -20,16 +20,16 @@ echo "%CD%"| findstr /R /C:"[!#\$%&()\*+,;<=>?@\[\]\^`{|}~\u4E00-\u9FFF ] " >nul
 )
 
 
-set TMP=%CD%\fishenv
-set TEMP=%CD%\fishenv
+set TMP=%CD%\..\fishenv
+set TEMP=%CD%\..\fishenv
 
 (call conda deactivate && call conda deactivate && call conda deactivate) 2>nul
 
-set INSTALL_DIR=%cd%\fishenv
-set CONDA_ROOT_PREFIX=%cd%\fishenv\conda
-set INSTALL_ENV_DIR=%cd%\fishenv\env
-set PIP_CMD=%cd%\fishenv\env\python -m pip
-set PYTHON_CMD=%cd%\fishenv\env\python
+set INSTALL_DIR=%cd%\..\fishenv
+set CONDA_ROOT_PREFIX=%cd%\..\fishenv\conda
+set INSTALL_ENV_DIR=%cd%\..\fishenv\env
+set PIP_CMD=%cd%\..\fishenv\env\python -m pip
+set PYTHON_CMD=%cd%\..\fishenv\env\python
 set API_FLAG_PATH=%~dp0API_FLAGS.txt
 set MINICONDA_DOWNLOAD_URL=https://repo.anaconda.com/miniconda/Miniconda3-py310_23.3.1-0-Windows-x86_64.exe
 if "!USE_MIRROR!" == "true" (

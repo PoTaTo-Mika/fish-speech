@@ -8,7 +8,7 @@ if exist "fishenv" (
     set PYTHON_CMD=%cd%\fishenv\env\python
 )
 
-set API_FLAG_PATH=%~dp0API_FLAGS.txt
+set API_FLAG_PATH=%~dp0build_env\API_FLAGS.txt
 set KMP_DUPLICATE_LIB_OK=TRUE
 
 setlocal enabledelayedexpansion

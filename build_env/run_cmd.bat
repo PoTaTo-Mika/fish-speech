@@ -17,15 +17,15 @@ echo "%CD%"| findstr /R /C:"[!#\$%&()\*+,;<=>?@\[\]\^`{|}~\u4E00-\u9FFF ] " >nul
 )
 
 
-set TMP=%CD%\fishenv
-set TEMP=%CD%\fishenv
+set TMP=%CD%\..\fishenv
+set TEMP=%CD%\..\fishenv
 
 
 (call conda deactivate && call conda deactivate && call conda deactivate) 2>nul
 
 
-set CONDA_ROOT_PREFIX=%cd%\fishenv\conda
-set INSTALL_ENV_DIR=%cd%\fishenv\env
+set CONDA_ROOT_PREFIX=%cd%\..\fishenv\conda
+set INSTALL_ENV_DIR=%cd%\..\fishenv\env
 
 
 set PYTHONNOUSERSITE=1
