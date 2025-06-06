@@ -31,10 +31,10 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                             with gr.Row():
                                 chunk_length = gr.Slider(
                                     label=i18n("Iterative Prompt Length, 0 means off"),
-                                    minimum=100,
-                                    maximum=400,
-                                    value=300,
-                                    step=8,
+                                    minimum=0,
+                                    maximum=800,
+                                    value=0,
+                                    step=20,
                                 )
 
                                 max_new_tokens = gr.Slider(
@@ -108,7 +108,7 @@ def build_app(inference_fct: Callable, theme: str = "light") -> gr.Blocks:
                                     label=i18n("Reference Text"),
                                     lines=1,
                                     placeholder="在一无所知中，梦里的一天结束了，一个新的「轮回」便会开始。",
-                                    value="",
+                                    value="博士，如果过去的那些记忆，您还能回想起一些的话......我真的很高兴。嗯，我的小提琴还不够熟练，但是......既然这里只有您能听到，我想试着演奏一下。一首有些怀旧的曲子。 那些离去者的名字，我都记得，那些战场上的恐惧、愤怒和痛苦，我也仍然能触摸到余音。但要在大家面前演讲的话，我更想说些心怀希望的故事。博士，我有点紧张......可以握住我的手吗？",
                                 )
 
             with gr.Column(scale=3):
