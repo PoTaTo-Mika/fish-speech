@@ -418,11 +418,19 @@ def generate_long(
             global_encoded.append(seg)
 
             if len(base_content_sequence.parts) <= 1 and len(global_encoded) >= 2:
+                # 对于长序列，保持更多的上下文信息
+                context_segments = global_encoded[-2:]  # 保留最近2个分段的上下文
                 cat_encoded = torch.cat(
-                    [encoded_prompts, global_encoded[0], global_encoded[1], seg], dim=1
+                    [encoded_prompts] + context_segments + [seg], dim=1
                 )
             else:
-                cat_encoded = torch.cat([encoded_prompts, seg], dim=1)
+                # 始终包含参考音频信息
+                if len(global_encoded) > 1:
+                    # 包含前一个分段的部分信息以保持连续性
+                    prev_segment = global_encoded[-1][:, -128:]  # 保留前一段的最后128个token
+                    cat_encoded = torch.cat([encoded_prompts, prev_segment, seg], dim=1)
+                else:
+                    cat_encoded = torch.cat([encoded_prompts, seg], dim=1)
 
             cat_encoded = cat_encoded.to(device=device)
             prompt_length = cat_encoded.size(1)
