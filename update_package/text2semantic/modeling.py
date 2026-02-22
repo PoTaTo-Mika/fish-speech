@@ -36,7 +36,7 @@ from update_package.text2semantic.configuration import (
     FishQwen3OmniConfig,
     FishQwen3OmniForSequenceClassificationConfig,
 )
-from update_package.utils import (
+from update_package.text2semantic.utils import (
     apply_rotary_emb,
     find_multiple,
     precompute_freqs_cis,
