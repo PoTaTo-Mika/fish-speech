@@ -19,7 +19,7 @@ from loguru import logger
 from transformers import AutoModel, PreTrainedTokenizerFast
 
 from update_package.content_sequence import ContentSequence, TextPart, VQPart
-from update_package.text2semantic.qwen3 import FishQwen3OmniForCausalLM
+from update_package.text2semantic import FishQwen3OmniForCausalLM
 from update_package.text2semantic.modeling import FishQwen3OmniOutput
 
 

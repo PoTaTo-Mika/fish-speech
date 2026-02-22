@@ -9,7 +9,7 @@ from typing import Optional
 
 from transformers import PretrainedConfig
 
-from update_package.utils import find_multiple
+from update_package.text2semantic.utils import find_multiple
 from update_package.utils import RankedLogger
 
 log = RankedLogger(__name__, rank_zero_only=True)

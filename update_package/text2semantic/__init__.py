@@ -5,7 +5,7 @@ This module provides a clean separation between model architecture and loading l
 following HuggingFace conventions while maintaining compatibility with existing code.
 """
 
-from flash_fish.models.qwen3.configuration import (
+from update_package.text2semantic.configuration import (
     FishQwen3AudioDecoderConfig,
     FishQwen3AudioEncoderConfig,
     FishQwen3Config,
@@ -13,7 +13,7 @@ from flash_fish.models.qwen3.configuration import (
     FishQwen3OmniConfig,
     FishQwen3OmniForSequenceClassificationConfig,
 )
-from flash_fish.models.qwen3.modeling import (
+from update_package.text2semantic.modeling import (
     FishQwen3AudioDecoder,
     FishQwen3AudioEncoder,
     FishQwen3ForCausalLM,
