@@ -18,10 +18,10 @@ import torch
 
 from fish_speech.content_sequence import TextPart, VQPart
 from fish_speech.conversation import Conversation, Message
-from fish_speech.models.text2semantic.qwen3 import generate, load_model
 from fish_speech.models.dac.vqgan import batch_encode as vqgan_encode
 from fish_speech.models.dac.vqgan import decode as vqgan_decode
 from fish_speech.models.dac.vqgan import load_model as load_vqgan_model
+from fish_speech.models.text2semantic.qwen3 import generate, load_model
 from fish_speech.tokenizer import IM_END_TOKEN
 
 
@@ -549,9 +549,9 @@ class TTSGenerator:
                 model=self.model,
                 input_ids=input_ids,
                 max_new_tokens=max_new_tokens,
-                decode_one_token_fn=self.decode_one_token_fn
-                if self.use_cuda_graph
-                else None,
+                decode_one_token_fn=(
+                    self.decode_one_token_fn if self.use_cuda_graph else None
+                ),
                 temperature=temperature,
                 top_p=top_p,
                 top_k=top_k,
