@@ -18,9 +18,9 @@ import torch.nn.functional as F
 from loguru import logger
 from transformers import AutoModel, PreTrainedTokenizerFast
 
-from update_package.content_sequence import ContentSequence, TextPart, VQPart
-from update_package.text2semantic import FishQwen3OmniForCausalLM
-from update_package.text2semantic.modeling import FishQwen3OmniOutput
+from fish_speech.content_sequence import ContentSequence, TextPart, VQPart
+from fish_speech.models.text2semantic import FishQwen3OmniForCausalLM
+from fish_speech.models.text2semantic.modeling import FishQwen3OmniOutput
 
 
 def multinomial_with_seed(

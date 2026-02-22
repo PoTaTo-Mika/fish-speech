@@ -16,13 +16,13 @@ from pathlib import Path
 import soundfile as sf
 import torch
 
-from update_package.content_sequence import TextPart, VQPart
-from update_package.conversation import Conversation, Message
-from update_package.text2semantic.qwen3 import generate, load_model
-from update_package.dac.vqgan import batch_encode as vqgan_encode
-from update_package.dac.vqgan import decode as vqgan_decode
-from update_package.dac.vqgan import load_model as load_vqgan_model
-from update_package.tokenizer import IM_END_TOKEN
+from fish_speech.content_sequence import TextPart, VQPart
+from fish_speech.conversation import Conversation, Message
+from fish_speech.models.text2semantic.qwen3 import generate, load_model
+from fish_speech.models.dac.vqgan import batch_encode as vqgan_encode
+from fish_speech.models.dac.vqgan import decode as vqgan_decode
+from fish_speech.models.dac.vqgan import load_model as load_vqgan_model
+from fish_speech.tokenizer import IM_END_TOKEN
 
 
 def split_text_by_speaker(text: str) -> list[str]:

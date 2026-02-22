@@ -27,8 +27,8 @@ from transformers.modeling_outputs import (
     SequenceClassifierOutputWithPast,
 )
 
-from update_package.kernels.functional import triton_grouped_gemm
-from update_package.text2semantic.configuration import (
+from fish_speech.models.kernels.functional import triton_grouped_gemm
+from fish_speech.models.text2semantic.configuration import (
     FishQwen3AudioDecoderConfig,
     FishQwen3AudioEncoderConfig,
     FishQwen3Config,
@@ -36,12 +36,12 @@ from update_package.text2semantic.configuration import (
     FishQwen3OmniConfig,
     FishQwen3OmniForSequenceClassificationConfig,
 )
-from update_package.text2semantic.utils import (
+from fish_speech.models.text2semantic.utils import (
     apply_rotary_emb,
     find_multiple,
     precompute_freqs_cis,
 )
-from update_package.utils import RankedLogger
+from fish_speech.utils import RankedLogger
 
 try:
     from flash_attn_interface import flash_attn_varlen_func, flash_attn_with_kvcache

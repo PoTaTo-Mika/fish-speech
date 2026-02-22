@@ -3,16 +3,12 @@ import typing as tp
 from dataclasses import dataclass
 from typing import List, Optional, Union
 
-import hydra
-import librosa
 import numpy as np
-import soundfile as sf
 import torch
 from audiotools import AudioSignal
 from audiotools.ml import BaseModel
 from dac.model.base import CodecMixin
 from dac.nn.layers import Snake1d, WNConv1d, WNConvTranspose1d
-from omegaconf import OmegaConf
 from torch import Tensor, nn
 from torch.nn import functional as F
 from torch.nn.utils.parametrizations import weight_norm
@@ -51,6 +47,7 @@ class ModelArgs:
     channels_first: bool = True  # to be compatible with conv1d input/output
     pos_embed_type: str = "rope"  # can be "rope" or "conformer"
     max_relative_position: int = 128  # for conformer-style relative position embedding
+    window_size: int = 512  # for window limited attention
 
     def __post_init__(self):
         if self.n_local_heads == -1:
@@ -106,16 +103,14 @@ class Transformer(nn.Module):
         # Only compute RoPE frequencies if using RoPE
         if config.pos_embed_type == "rope":
             freqs_cis = precompute_freqs_cis(
-                self.config.block_size, self.config.head_dim, self.config.rope_base
+                327680, self.config.head_dim, self.config.rope_base
             )
-            self.register_buffer("freqs_cis", freqs_cis)
+            self.register_buffer("freqs_cis", freqs_cis, persistent=False)
         else:
             self.register_buffer("freqs_cis", None)
 
-        causal_mask = torch.tril(
-            torch.ones(self.config.block_size, self.config.block_size, dtype=torch.bool)
-        )
-        self.register_buffer("causal_mask", causal_mask)
+        causal_mask = torch.tril(torch.ones(32768, 32768, dtype=torch.bool))
+        self.register_buffer("causal_mask", causal_mask, persistent=False)
 
         self.max_batch_size = -1
         self.max_seq_length = -1
@@ -153,6 +148,7 @@ class Transformer(nn.Module):
             assert (
                 self.freqs_cis is not None
             ), "RoPE frequencies must be initialized for RoPE positional embedding"
+            # print("MAX", input_pos.max())
             freqs_cis = self.freqs_cis[input_pos]
         else:
             freqs_cis = None
@@ -638,7 +634,7 @@ class EncoderBlock(nn.Module):
                 WindowLimitedTransformer(
                     causal=causal,
                     input_dim=dim,
-                    window_size=512,
+                    window_size=getattr(transformer_general_config, "window_size", 512),
                     config=transformer_general_config(
                         n_layer=n_t_layer,
                         n_head=dim // 64,
@@ -814,6 +810,7 @@ class DAC(BaseModel, CodecMixin):
         causal: bool = True,
         encoder_transformer_layers: List[int] = [0, 0, 0, 0],
         decoder_transformer_layers: List[int] = [0, 0, 0, 0],
+        overwrite_decoder: torch.nn.Module = None,
         transformer_general_config=None,
     ):
         super().__init__()
@@ -841,14 +838,17 @@ class DAC(BaseModel, CodecMixin):
 
         self.quantizer = quantizer
 
-        self.decoder = Decoder(
-            latent_dim,
-            decoder_dim,
-            decoder_rates,
-            causal=causal,
-            n_transformer_layers=decoder_transformer_layers,
-            transformer_general_config=transformer_general_config,
-        )
+        if overwrite_decoder is not None:
+            self.decoder = overwrite_decoder
+        else:
+            self.decoder = Decoder(
+                latent_dim,
+                decoder_dim,
+                decoder_rates,
+                causal=causal,
+                n_transformer_layers=decoder_transformer_layers,
+                transformer_general_config=transformer_general_config,
+            )
         self.sample_rate = sample_rate
         self.apply(init_weights)
 
@@ -904,9 +904,7 @@ class DAC(BaseModel, CodecMixin):
                 Number of samples in input audio
         """
         # pad to multiple of self.frame_length
-        if audio_data.ndim == 2:
-            audio_data = audio_data.unsqueeze(1)
-        # print(audio_data.shape)
+        audio_data = audio_data.unsqueeze(1)
         length = audio_data.shape[-1]
         right_pad = math.ceil(length / self.frame_length) * self.frame_length - length
         audio_data = nn.functional.pad(audio_data, (0, right_pad))
@@ -919,13 +917,28 @@ class DAC(BaseModel, CodecMixin):
         indices_lens = torch.ceil(audio_lengths / self.frame_length).long()
         return indices, indices_lens
 
-    def decode(self, indices: torch.Tensor, feature_lengths):
-        if indices.ndim == 2:
-            indices = indices[None]
-
+    def from_indices(self, indices: torch.Tensor):
         z = self.quantizer.decode(indices)
-        audio_lengths = feature_lengths * self.frame_length
-        return self.decoder(z), audio_lengths
+        return self.decoder(z)
+
+    def decode(self, z: torch.Tensor):
+        """Decode given latent codes and return audio data
+
+        Parameters
+        ----------
+        z : Tensor[B x D x T]
+            Quantized continuous representation of input
+        length : int, optional
+            Number of samples in output audio, by default None
+
+        Returns
+        -------
+        dict
+            A dictionary with the following keys:
+            "audio" : Tensor[B x 1 x length]
+                Decoded audio data.
+        """
+        return self.decoder(z)
 
     def forward(
         self,
@@ -976,3 +989,71 @@ class DAC(BaseModel, CodecMixin):
         z = vq_results[0] if isinstance(vq_results, tuple) else vq_results.z
         x = self.decode(z)
         return x[..., :length], vq_results
+
+
+if __name__ == "__main__":
+    import hydra
+    import librosa
+    import soundfile as sf
+    from omegaconf import OmegaConf
+
+    with torch.inference_mode():
+
+        def filter_state_dict_shapes(params, model):
+            model_state_dict = model.state_dict()
+            filtered_state_dict = {
+                k: v
+                for k, v in params.items()
+                if k in model_state_dict and v.shape == model_state_dict[k].shape
+            }
+            skipped_keys = set(params.keys()) - set(filtered_state_dict.keys())
+            if skipped_keys:
+                print(
+                    f"Warning: Skipped loading some keys due to shape mismatch: {skipped_keys}"
+                )
+            return filtered_state_dict, skipped_keys
+
+        model = hydra.utils.instantiate(
+            OmegaConf.load("flash_fish/configs/modded_dac_vq.yaml")
+        )
+        # original_sd_path = "/home/plachtaa/convnext-bigvgan-causal/logs/eva-gan-medium-causal-21hz-more_transformer-mini_post-l1_residual_distill-decoder-ft/checkpoints/step_001440000.ckpt"
+        new_sd_path = "checkpoints/modded-dac-msstftd-step-1380000.pth"
+        # sd = torch.load(original_sd_path, map_location='cpu', weights_only=False)['state_dict']
+        # # strip generator. prefix
+        # sd = {k.replace("generator.", ""): v for k, v in sd.items() if k.startswith("generator.")}
+        # filtered_sd, skipped_keys = filter_state_dict_shapes(sd, model)
+        # print(f"Skipped keys: {skipped_keys}")
+        # model.load_state_dict(filtered_sd, strict=False)
+        # model.eval()
+        # torch.save(
+        #     model.state_dict(),
+        #     new_sd_path,
+        # )
+        new_sd = torch.load(new_sd_path, map_location="cpu")
+        model.load_state_dict(new_sd, strict=False)
+        model.cuda()
+        src_audio_path = "ElevenLabs_2025-12-31T22_37_56_Brian - Deep, Resonant and Comforting_pre_sp100_s50_sb75_v3.mp3"
+        wave_np, _ = librosa.load(src_audio_path, sr=44100, mono=False)
+
+        # If mono, add a channel dimension
+        if len(wave_np.shape) == 1:
+            wave_np = wave_np[None, :]
+        wave_tensor = torch.from_numpy(wave_np).cuda()
+
+        features, feature_lens = model.encode(wave_tensor)
+
+        # torch.save(features.cpu()[0], "test2.pt")
+        print("Features shape:", features.shape)
+
+        for idx, path in enumerate(
+            [
+                "test_multi_codebook_generation_output_0.pt",
+                "test_multi_codebook_generation_output_1.pt",
+                "test_multi_codebook_generation_output_2.pt",
+                # "test_ensemble_output.pt",
+            ]
+        ):
+            features = torch.load(path).T[None].cuda()
+            print(features.shape)
+            fake_audio = model.from_indices(features)
+            sf.write(f"fake{idx}.wav", fake_audio.squeeze(1).cpu().numpy().T, 44100)

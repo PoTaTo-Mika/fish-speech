@@ -21,7 +21,7 @@ def load_model(
     # encoder/decoder args are for API compatibility with vits.py
     # DAC always loads both since they're small
     hydra.core.global_hydra.GlobalHydra.instance().clear()
-    with initialize(version_base="1.3", config_path="../configs"):
+    with initialize(version_base="1.3", config_path="../../configs"):
         cfg = compose(config_name=config_name)
 
     model = instantiate(cfg)
